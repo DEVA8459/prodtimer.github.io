@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timer App</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #000;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .timer-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 50vh;
+      margin: 0;
+    }
+
+    .timer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 100px; /* Adjust the font size as needed */
+      font-weight: bold;
+      height: 100%;
+    }
+
+    .memory {
+        padding: 10px 15px;
+      margin: 5px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: #0e0d0d;
+      background-color: #24f30d;
+      transition: background-color 0.3s
+    }
+
+    .flip-container {
+      perspective: 1000px;
+      margin: 100px;
+      height: 100%;
+    }
+
+    .flip-container .flipper {
+      transition: 0.6s transform, 0.6s background-color;
+      transform-style: preserve-3d;
+      position: relative;
+      height: 100%;
+    }
+
+    .flip-container:hover .flipper,
+    .flip-container.flip .flipper {
+      transform: rotateX(180deg);
+    }
+
+    .front,
+    .back {
+      backface-visibility: hidden;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #000;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+
+    .back {
+      transform: rotateX(180deg);
+    }
+
+    /* Style for buttons */
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: #fff;
+      background-color: #007bff;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    /* Style for different buttons */
+    #btn-45min {
+      background-color: #28a745; /* Green */
+    }
+
+    #btn-30min {
+      background-color: #17a2b8; /* Cyan */
+    }
+
+    #btn-5min {
+      background-color: #ffc107; /* Yellow */
+    }
+
+    #btn-10min {
+      background-color: #dc3545; /* Red */
+    }
+
+    #btn-10sec {
+      background-color: #6c757d; /* Gray */
+    }
+
+    /* Style for icons */
+    .icon {
+      margin-right: 5px;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 600px) {
+      .timer {
+        font-size: 2rem;
+      }
+
+      .memory {
+        font-size: 0.8rem;
+      }
+
+      button {
+        font-size: 0.8rem;
+        padding: 8px 12px;
+      }
+    }
+  </style>
+
+  <!-- Add this line to include Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+
+<audio id="alertAudio">
+  <source src="./tic-tac-27828.mp3" type="audio/mp3">
+  Your browser does not support the audio tag.
+</audio>
+
+<div class="timer-container">
+  <div class="timer">
+    <div id="flip-container-hour" class="flip-container">
+      <div class="flipper">
+        <div class="front">
+          <span id="hour">00</span>
+        </div>
+        <div class="back">
+          <span id="hour-back">00</span>
+        </div>
+      </div>
+    </div>
+    :
+    <div id="flip-container-minute" class="flip-container">
+      <div class="flipper">
+        <div class="front">
+          <span id="minute">00</span>
+        </div>
+        <div class="back">
+          <span id="minute-back">00</span>
+        </div>
+      </div>
+    </div>
+    :
+    <div id="flip-container-second" class="flip-container">
+      <div class="flipper">
+        <div class="front">
+          <span id="second">00</span>
+        </div>
+        <div class="back">
+          <span id="second-back">00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="memory" id="memoryDisplay">Total time today: 00:00:00</div>
+
+  <div>
+    <button id="btn-45min" onclick="setTimer(45)"><i class="fas fa-clock icon"></i>45 Min</button>
+    <button id="btn-30min" onclick="setTimer(30)"><i class="fas fa-clock icon"></i>30 Min</button>
+    <button id="btn-5min" onclick="setTimer(5)"><i class="fas fa-clock icon"></i>5 Min</button>
+    <button id="btn-10min" onclick="setTimer(10)"><i class="fas fa-clock icon"></i>10 Min</button>
+    <button id="btn-10sec" onclick="setTimer(10/60)"><i class="fas fa-clock icon"></i>10 Sec</button>
+  </div>
+
+  <div>
+    <button onclick="startTimer()"><i class="fas fa-play icon"></i>Start</button>
+    <button onclick="stopTimer()"><i class="fas fa-stop icon"></i>Stop</button>
+    <button onclick="resetTimer()"><i class="fas fa-redo-alt icon"></i>Reset</button>
+    <button onclick="resetHour()"><i class="fas fa-history icon"></i>Reset Hour</button>
+    <button onclick="stopAudio()"><i class="fas fa-volume-mute icon"></i>Stop Audio</button>
+  </div>
+
+  <script>
+    let timerInterval;
+    let totalSeconds;
+    let currentSeconds;
+    let totalTimeToday = parseInt(localStorage.getItem('totalTimeToday')) || 0;
+
+    const alertAudio = document.getElementById('alertAudio');
+
+    function setTimer(minutes) {
+      totalSeconds = minutes * 60;
+      currentSeconds = totalSeconds;
+      updateDisplay();
+    }
+
+    function startTimer() {
+      if (totalSeconds === undefined) {
+        alert("Please set the timer first.");
+        return;
+      }
+
+      timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      totalTimeToday += totalSeconds;
+      totalSeconds = undefined;
+      currentSeconds = undefined;
+      updateMemoryDisplay();
+      updateDisplay();
+    }
+
+    function resetHour() {
+      totalTimeToday = 0;
+      updateMemoryDisplay();
+    }
+
+    function updateTimer() {
+      currentSeconds--;
+      if (currentSeconds < 0) {
+        clearInterval(timerInterval);
+        playAlertSound();
+        resetTimer();
+        return;
+      }
+      updateDisplay();
+    }
+
+    function updateDisplay() {
+      let hours = Math.floor(currentSeconds / 3600);
+      let minutes = Math.floor((currentSeconds % 3600) / 60);
+      let seconds = currentSeconds % 60;
+
+      // Flip animation for hours
+      document.getElementById('flip-container-hour').classList.add('flip');
+      setTimeout(() => {
+        document.getElementById('flip-container-hour').classList.remove('flip');
+        document.getElementById('hour').innerText = String(hours).padStart(2, '0');
+      }, 600);
+
+      // Flip animation for minutes
+      document.getElementById('flip-container-minute').classList.add('flip');
+      setTimeout(() => {
+        document.getElementById('flip-container-minute').classList.remove('flip');
+        document.getElementById('minute').innerText = String(minutes).padStart(2, '0');
+      }, 600);
+
+      // Flip animation for seconds
+      document.getElementById('flip-container-second').classList.add('flip');
+      setTimeout(() => {
+        document.getElementById('flip-container-second').classList.remove('flip');
+        document.getElementById('second').innerText = String(seconds).padStart(2, '0');
+      }, 600);
+    }
+
+    function playAlertSound() {
+      alertAudio.play();
+    }
+
+    function stopAudio() {
+      alertAudio.pause();
+      alertAudio.currentTime = 0;
+    }
+
+    function updateMemoryDisplay() {
+      const hours = Math.floor(totalTimeToday / 3600);
+      const minutes = Math.floor((totalTimeToday % 3600) / 60);
+      const seconds = totalTimeToday % 60;
+
+      const displayText = `Total time today: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      document.getElementById('memoryDisplay').innerText = displayText;
+
+      // Save memory to local storage
+      localStorage.setItem('totalTimeToday', totalTimeToday);
+    }
+  </script>
+</body>
+</html>
